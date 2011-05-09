@@ -1,0 +1,19 @@
+# Introduction
+
+Memory is a github based utility which helps you store and view links. Storage
+works on top of git infrastructure while viewing links works through
+github-pages.
+
+## Commands
+
+1. Storing links - `memory store http://reddit.com/r/programming "Programming subreddit"`
+
+2. Deleting links - not supported :). Potentially `memory` could support
+   editing/removing non-pushed submissions. Pushed submissions _could_ be
+   allowed to be edited which would not be handled by `git` which, in turn,
+   would add a lot of complexity.
+
+## Viewing Links
+
+A github account is required for this to work. Memory will store links in a
+dedicated repository and generate the view into the `gh_pages` branch.
