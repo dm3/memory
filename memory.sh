@@ -2,7 +2,6 @@
 
 MEMORY_LOG='/dev/null'
 MEMORY_REPO='/tmp/repo2'
-MEMORY_FAKE_FILE='memory.fake'
 INITIAL_COMMIT_MSG='INITIAL_COMMIT'
 
 # Generates the view in the gh_pages branch of the memory repo.
@@ -108,25 +107,14 @@ function memory_store {
         echo "Creating a memory repository at $MEMORY_REPO"
         git init "$MEMORY_REPO" >> "$MEMORY_LOG"
         cd "$MEMORY_REPO"
-        touch "$MEMORY_FAKE_FILE"
-        git add .
-        git ci -a -m "$INITIAL_COMMIT_MSG" > "$MEMORY_LOG"
+        git ci --allow-empty -m "$INITIAL_COMMIT_MSG" > "$MEMORY_LOG"
         cd - > /dev/null
     fi
 
     # go into the repository as git cannot operate outside of it using a path.
     cd $MEMORY_REPO
 
-    # the easiest way to fool git into allowing an "empty" commit
-    # need to look into a better way.
-    if [[ -f "$MEMORY_FAKE_FILE" ]]; then
-        git rm -q -- "$MEMORY_FAKE_FILE"
-    else
-        touch "$MEMORY_FAKE_FILE"
-        git add .
-    fi
-
-    git ci -a -m "$message" > "$MEMORY_LOG"
+    git ci --allow-empty -m "$message" > "$MEMORY_LOG"
 
     # go back
     cd - > /dev/null
