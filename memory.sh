@@ -6,8 +6,33 @@ MEMORY_FAKE_FILE='memory.fake'
 INITIAL_COMMIT_MSG='INITIAL_COMMIT'
 
 # Generates the view in the gh_pages branch of the memory repo.
+# This will have to be done in a sane language.
 function memory_generate_view {
-    echo $1
+    if [[ ! -d $MEMORY_REPO ]]; then
+        echo "Memory repository doesn't exist at $MEMORY_REPO!"
+        return
+    fi
+
+    cd "$MEMORY_REPO"
+    git checkout -B gh-pages
+
+    entries=`git log --pretty=tformat:%s -b master | grep -v "$INITIAL_COMMIT_MSG"`
+
+    # generate index.html
+    echo "<html><head><title>Memory links!</title></head><body><table>" > index.html
+    echo "$entries" | while read entry; do
+        echo "<tr>" >> index.html
+        url=`echo "$entry" | sed 's/{\(.*\)}.*/\1/'`
+        description=`echo "$entry" | sed 's/.*} \(.*\)$/\1/'`
+        echo "<td><a href=\"$url\">$description</a></td>" >> index.html
+        echo "</tr>" >> index.html
+    done
+    echo "</table></body></html>" >> index.html
+    git add . >> "$MEMORY_LOG"
+    git ci -a -m 'Regenerated memory view page.' >> "$MEMORY_LOG"
+
+    git checkout master
+    cd - > /dev/null
 }
 
 # Tags are stored in git notes with each tag on a new line to leverage the
