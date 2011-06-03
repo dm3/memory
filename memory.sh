@@ -1,8 +1,46 @@
 #!/bin/env sh
 
-MEMORY_LOG='/dev/null'
+MEMORY_LOG='/tmp/memory.log'
 MEMORY_REPO='/tmp/repo2'
 INITIAL_COMMIT_MSG='INITIAL_COMMIT'
+
+function memory_push {
+    if [[ ! -d $MEMORY_REPO ]]; then
+        echo "Memory repository doesn't exist at $MEMORY_REPO!"
+        return
+    fi
+
+    cd "$MEMORY_REPO"
+
+    push_url=`git remote -v | grep '(push)' | awk '{print $2}' | sed 's_.*\/\(.*\/.*$\)_git@github.com:\1_'`
+    git push "$push_url" --all
+
+    cd - > /dev/null
+}
+
+# associates memory repo with a github repo
+function memory_github {
+    if [[ ! -d $MEMORY_REPO ]]; then
+        echo "Memory repository doesn't exist at $MEMORY_REPO!"
+        return
+    fi
+
+    if [[ -z "$1" ]]; then
+        echo "Github username must be provided as the first argument!"
+        return
+    fi
+
+    if [[ -z "$2" ]]; then
+        echo "Github repository name must be provided as the second argument!"
+        return
+    fi
+
+    cd "$MEMORY_REPO"
+
+    git remote add origin "git://github.com/$1/$2.git"
+
+    cd - > /dev/null
+}
 
 # Generates the view in the gh_pages branch of the memory repo.
 # This will have to be done in a sane language.
@@ -95,6 +133,19 @@ function memory_store {
         return
     fi
 
+    if [[ "$1" == 'http://'* ]]; then
+        # check the submitted url for liveness
+        url=`echo "$1" | sed 's_http://\([^/]*\)/.*_\1_'`
+        ping -n 1 "$url" >> "$MEMORY_LOG"
+        if [[ "$?" -eq 1 ]]; then
+            echo "$url ($1) seems to be offline!"
+            return
+        fi
+    else
+        echo "$1 is not an URL!"
+        return
+    fi
+
     # Description is optional
     if [[ -z $2 ]]; then
         message="{$1}"
@@ -114,7 +165,7 @@ function memory_store {
     # go into the repository as git cannot operate outside of it using a path.
     cd $MEMORY_REPO
 
-    git ci --allow-empty -m "$message" > "$MEMORY_LOG"
+    git ci --allow-empty -m "$message" >> "$MEMORY_LOG"
 
     # go back
     cd - > /dev/null
