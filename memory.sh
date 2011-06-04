@@ -1,8 +1,11 @@
 #!/bin/env sh
 
-MEMORY_LOG='/tmp/memory.log'
-MEMORY_REPO='/tmp/repo2'
 INITIAL_COMMIT_MSG='INITIAL_COMMIT'
+
+if [[ -z "$MEMORY_HOME" ]] || [[ -z "$MEMORY_REPO" ]] || [[ -z "$MEMORY_LOG" ]]; then
+    echo "Source the .memoryrc configuration!"
+    return
+fi
 
 function memory_push {
     if [[ ! -d $MEMORY_REPO ]]; then
@@ -18,7 +21,7 @@ function memory_push {
     cd - > /dev/null
 }
 
-# associates memory repo with a github repo
+# associates existing memory repo with a github repo
 function memory_github {
     if [[ ! -d $MEMORY_REPO ]]; then
         echo "Memory repository doesn't exist at $MEMORY_REPO!"
