@@ -8,7 +8,7 @@ if [[ -z "$MEMORY_HOME" ]] || [[ -z "$MEMORY_REPO" ]] || [[ -z "$MEMORY_LOG" ]];
 fi
 
 function memory_push {
-    if [[ ! -d $MEMORY_REPO ]]; then
+    if [[ ! -d "$MEMORY_REPO" ]]; then
         echo "Memory repository doesn't exist at $MEMORY_REPO!"
         return
     fi
@@ -21,9 +21,39 @@ function memory_push {
     cd - > /dev/null
 }
 
+function memory_github_retrieve {
+    if [[ -z "$1" ]]; then
+        echo "Github username must be provided as the first argument!"
+        return
+    fi
+
+    if [[ -z "$2" ]]; then
+        echo "Github repository name must be provided as the second argument!"
+        return
+    fi
+
+    if [[ ! -d "$MEMORY_REPO" ]]; then
+        echo "Creating memory at $MEMORY_REPO"
+        mkdir -p "$MEMORY_REPO"
+    else
+        if [[ -d "$MEMORY_REPO/.git" ]]; then
+            echo "Git repository already exists in $MEMORY_REPO!"
+            return
+        fi
+    fi
+
+    git clone "git://github.com/$1/$2.git" "$MEMORY_REPO"
+
+    cd "$MEMORY_REPO"
+
+    git branch --track gh-pages origin/gh-pages
+
+    cd - > /dev/null
+}
+
 # associates existing memory repo with a github repo
-function memory_github {
-    if [[ ! -d $MEMORY_REPO ]]; then
+function memory_github_assoc {
+    if [[ ! -d "$MEMORY_REPO" ]]; then
         echo "Memory repository doesn't exist at $MEMORY_REPO!"
         return
     fi
@@ -54,7 +84,15 @@ function memory_generate_view {
     fi
 
     cd "$MEMORY_REPO"
-    git checkout -B gh-pages
+
+    # gh-pages must already exist
+    # It wouldn't be too hard to create it anyways, but lets not
+    # allow too many options, shall we?
+    if [[ -z `git branch | grep gh-pages` ]]; then
+        echo "Memory repo is corrupted! No gh-pages branch exists!"
+        return
+    fi
+    git checkout gh-pages
 
     entries=`git log --pretty=tformat:%s -b master | grep -v "$INITIAL_COMMIT_MSG"`
 
@@ -138,10 +176,9 @@ function memory_store {
 
     if [[ "$1" == 'http://'* ]]; then
         # check the submitted url for liveness
-        url=`echo "$1" | sed 's_http://\([^/]*\)/.*_\1_'`
-        ping -n 1 "$url" >> "$MEMORY_LOG"
-        if [[ "$?" -eq 1 ]]; then
-            echo "$url ($1) seems to be offline!"
+        curl -If "$1" &>> "$MEMORY_LOG"
+        if [[ "$?" -gt 0 ]]; then
+            echo "$1 seems to be offline!"
             return
         fi
     else
@@ -162,7 +199,14 @@ function memory_store {
         git init "$MEMORY_REPO" >> "$MEMORY_LOG"
         cd "$MEMORY_REPO"
         git ci --allow-empty -m "$INITIAL_COMMIT_MSG" > "$MEMORY_LOG"
+
+        # create a gh-pages branch beforehand so that it wouldn't be possible
+        # to push without it.
+        git co -B gh-pages
+        git co master
+
         cd - > /dev/null
+
     fi
 
     # go into the repository as git cannot operate outside of it using a path.
