@@ -99,11 +99,13 @@ function memory_generate_view {
     # generate index.html
     echo "<html><head><title>Memory links!</title></head><body><table>" > index.html
     echo "$entries" | while read entry; do
-        echo "<tr>" >> index.html
-        url=`echo "$entry" | sed 's/{\(.*\)}.*/\1/'`
-        description=`echo "$entry" | sed 's/.*} \(.*\)$/\1/'`
-        echo "<td><a href=\"$url\">$description</a></td>" >> index.html
-        echo "</tr>" >> index.html
+        if [[ ! $entry =~ .*Merge\ branch.* ]]; then
+            echo "<tr>" >> index.html
+            url=`echo "$entry" | sed 's/{\(.*\)}.*/\1/'`
+            description=`echo "$entry" | sed 's/.*} \(.*\)$/\1/'`
+            echo "<td><a href=\"$url\">$description</a></td>" >> index.html
+            echo "</tr>" >> index.html
+        fi
     done
     echo "</table></body></html>" >> index.html
     git add . >> "$MEMORY_LOG"
