@@ -1,5 +1,8 @@
+# Path to the checked out `memory` project
 export MEMORY_HOME="$HOME/path/to/memory/repo"
+# Path to the folder which contains (will contain) the git memory repository
 export MEMORY_REPO="$HOME/.memory"
+# All of the output produced by memory goes here
 export MEMORY_LOG='/var/memory.log'
 
 source "$MEMORY_HOME/memory.sh"

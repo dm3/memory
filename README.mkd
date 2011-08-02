@@ -19,3 +19,27 @@ github-pages.
 
 A github account is required for this to work. Memory will store links in a
 dedicated repository and generate the view into the `gh_pages` branch.
+
+## How-to
+
+### Initialize a repository
+
+1. `git co git@github.com:dm3/memory.git memory && cd memory`
+2. `cp templates/.memoryrc ~/`, edit the `.memoryrc` file to make it correspond to your needs and add `source` it in `.bash_profile` (or wherever you please)
+3. `memory_store http://some.link "My first memory"`
+    * At this point a git repository will be created at the location specified in `.memoryrc`
+4. Create an empty github repository. Let's say it's located under `github_username/github_repo_name`
+5. `memory_github_assoc github_username github_repo_name`
+6. `memory_generate_view`
+7. `memory_push`
+
+### Use the repository on a different machine
+
+1. `git co git@github.com:dm3/memory.git memory && cd memory`
+2. `cp templates/.memoryrc ~/`, edit and `source`
+3. `memory_github_retrieve github_username github_repo_name`
+
+## TODO
+
+* Make the default generated view usable
+* Simplify the initialisation process
