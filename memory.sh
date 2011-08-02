@@ -92,7 +92,8 @@ function memory_generate_view {
         echo "Memory repo is corrupted! No gh-pages branch exists!"
         return
     fi
-    git checkout gh-pages
+    git checkout gh-pages >> "$MEMORY_LOG"
+    git pull >> "$MEMORY_LOG"
 
     entries=`git log --pretty=tformat:%s -b master | grep -v "$INITIAL_COMMIT_MSG"`
 
@@ -214,7 +215,7 @@ function memory_store {
     # go into the repository as git cannot operate outside of it using a path.
     cd $MEMORY_REPO
 
-    git ci --allow-empty -m "$message" >> "$MEMORY_LOG"
+    git pull >> "$MEMORY_LOG" && git ci --allow-empty -m "$message" >> "$MEMORY_LOG"
 
     # go back
     cd - > /dev/null
