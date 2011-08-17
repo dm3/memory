@@ -1,6 +1,7 @@
 #!/bin/env sh
 
 INITIAL_COMMIT_MSG='INITIAL_COMMIT'
+AUTO_MERGE_MSG='Merge branch'
 
 if [[ -z "$MEMORY_HOME" ]] || [[ -z "$MEMORY_REPO" ]] || [[ -z "$MEMORY_LOG" ]]; then
     echo "Source the .memoryrc configuration!"
@@ -16,7 +17,7 @@ function memory_push {
     cd "$MEMORY_REPO"
 
     push_url=`git remote -v | grep '(push)' | awk '{print $2}' | sed 's_.*\/\(.*\/.*$\)_git@github.com:\1_'`
-    git push "$push_url" --all
+    git push "$push_url" refs/notes/* master gh-pages
 
     cd - > /dev/null
 }
@@ -95,20 +96,31 @@ function memory_generate_view {
     git checkout gh-pages >> "$MEMORY_LOG"
     git pull >> "$MEMORY_LOG"
 
-    entries=`git log --pretty=tformat:%s -b master | grep -v "$INITIAL_COMMIT_MSG"`
+    # format: {hash}{link} name
+    entries=`git log --pretty=tformat:'{%h}%s' -b master | grep -v "$INITIAL_COMMIT_MSG" | grep -v "$AUTO_MERGE_MSG"`
 
     # generate index.html
-    echo "<html><head><title>Memory links!</title></head><body><table>" > index.html
+    echo '<html><head><title>Memory links!</title></head><body><table>' > index.html
     echo "$entries" | while read entry; do
-        if [[ ! $entry =~ .*Merge\ branch.* ]]; then
-            echo "<tr>" >> index.html
-            url=`echo "$entry" | sed 's/{\(.*\)}.*/\1/'`
-            description=`echo "$entry" | sed 's/.*} \(.*\)$/\1/'`
-            echo "<td><a href=\"$url\">$description</a></td>" >> index.html
-            echo "</tr>" >> index.html
+        echo '<tr>' >> index.html
+
+        url=`echo "$entry" | sed 's/{.*}{\(.*\)}.*/\1/'`
+        description=`echo "$entry" | sed 's/.*} \(.*\)$/\1/'`
+        echo "<td><a href=\"$url\">$description</a></td>" >> index.html
+
+        # get tags for the entry
+        hash=`echo "$entry" | sed 's/{\(.*\)}{.*$/\1/'`
+        git notes show $hash &> "$MEMORY_LOG" # check if a note exists (hackish)
+        if [[ 0 -eq $? ]]; then
+            tags=`git notes show $hash`
+            echo "<td>[$tags]</td>" >> index.html
+        else
+            echo '<td>&nbsp;</td>' >> index.html
         fi
+
+        echo '</tr>' >> index.html
     done
-    echo "</table></body></html>" >> index.html
+    echo '</table></body></html>' >> index.html
     git add . >> "$MEMORY_LOG"
     git ci -a -m 'Regenerated memory view page.' >> "$MEMORY_LOG"
 
@@ -166,7 +178,7 @@ function memory_view {
     fi
 
     cd "$MEMORY_REPO"
-    git log --pretty=tformat:'[%h] - %s @ %ai' | grep -v "$INITIAL_COMMIT_MSG"
+    git log --pretty=tformat:'[%h] - %s @ %ai' --show-notes | grep -v "$INITIAL_COMMIT_MSG" | grep -v "$AUTO_MERGE_MSG"
     cd - > /dev/null
 }
 
@@ -203,6 +215,9 @@ function memory_store {
         cd "$MEMORY_REPO"
         git ci --allow-empty -m "$INITIAL_COMMIT_MSG" > "$MEMORY_LOG"
 
+        # enable note sharing
+        git config --add remote.origin.fetch +refs/notes/*:refs/notes/*
+
         # create a gh-pages branch beforehand so that it wouldn't be possible
         # to push without it.
         git co -B gh-pages
@@ -215,7 +230,7 @@ function memory_store {
     # go into the repository as git cannot operate outside of it using a path.
     cd $MEMORY_REPO
 
-    git pull >> "$MEMORY_LOG" && git ci --allow-empty -m "$message" >> "$MEMORY_LOG"
+    git co master && git pull >> "$MEMORY_LOG" && git ci --allow-empty -m "$message" >> "$MEMORY_LOG"
 
     # go back
     cd - > /dev/null
