@@ -99,9 +99,19 @@ function memory_generate_view {
     # format: {hash}{link} name
     entries=`git log --pretty=tformat:'{%h}%s' -b master | grep -v "$INITIAL_COMMIT_MSG" | grep -v "$AUTO_MERGE_MSG"`
 
+    # an array of javascript objects containing all of the commits for client-side rendering.
+    # Example of an object:
+    # {
+    #     hash: 'asgdas1',
+    #     url: 'http://some.nice.link',
+    #     description: 'Link',
+    #     tags: 'cool nice'
+    # }
+    data='var data=['
+
     # generate index.html
     echo '<html><head><title>Memory links!</title></head><body><table>' > index.html
-    echo "$entries" | while read entry; do
+    while read entry; do
         echo '<tr>' >> index.html
 
         url=`echo "$entry" | sed 's/{.*}{\(.*\)}.*/\1/'`
@@ -110,17 +120,31 @@ function memory_generate_view {
 
         # get tags for the entry
         hash=`echo "$entry" | sed 's/{\(.*\)}{.*$/\1/'`
-        git notes show $hash &> "$MEMORY_LOG" # check if a note exists (hackish)
+        # check if a note exists (hackish)
+        git notes show $hash &> "$MEMORY_LOG"
         if [[ 0 -eq $? ]]; then
             tags=`git notes show $hash`
             echo "<td>[$tags]</td>" >> index.html
         else
+            tags=''
             echo '<td>&nbsp;</td>' >> index.html
         fi
 
         echo '</tr>' >> index.html
-    done
-    echo '</table></body></html>' >> index.html
+
+        # add an object to the array (escape single quotes)
+        data="$data {hash:'$hash',url:'${url//\'/\'}',description:'${description//\'/\'}',tags:'$tags'},"
+    # avoid piping as otherwise `while` body will execute in a subshell
+    # and variables will not be accessible after `done`
+    done < <( echo "$entries" )
+    echo '</table>' >> index.html
+
+    # append the object
+    echo '<script type="text/javascript">' >> index.html
+    echo "${data%%,}];" >> index.html # remove the trailing comma
+    echo '</script></body></html>' >> index.html
+
+    # perform git actions
     git add . >> "$MEMORY_LOG"
     git ci -a -m 'Regenerated memory view page.' >> "$MEMORY_LOG"
 
