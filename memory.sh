@@ -43,11 +43,16 @@ function memory_github_retrieve {
         fi
     fi
 
-    git clone "git://github.com/$1/$2.git" "$MEMORY_REPO"
+    git clone "git://github.com/$1/$2.git" "$MEMORY_REPO" >> "$MEMORY_LOG"
 
     cd "$MEMORY_REPO"
 
+    # enable note sharing
+    git config --add remote.origin.fetch +refs/notes/*:refs/notes/*
     git branch --track gh-pages origin/gh-pages
+    git pull >> "$MEMORY_LOG"
+
+    echo "Memory repository initialized using $1/$2!"
 
     cd - > /dev/null
 }
