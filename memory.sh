@@ -128,7 +128,12 @@ function memory_generate_view {
         # check if a note exists (hackish)
         git notes show $hash &> "$MEMORY_LOG"
         if [[ 0 -eq $? ]]; then
-            tags=`git notes show $hash`
+            alltags=`git notes show $hash`
+            tags=''
+            for t in $alltags; do
+                tags="$tags,$t"
+            done
+            tags="${tags/,/}"
             echo "<td>[$tags]</td>" >> index.html
         else
             tags=''
