@@ -1,0 +1,88 @@
+/* layout */
+body, html {
+    margin: 0;
+    padding: 0;
+    background: #dddddd;
+}
+
+#wrap {
+    width: 750px;
+    margin: 0 auto;
+    background: #99c;
+}
+
+#header {
+    padding: 5px 10px;
+    background: #dddddd;
+}
+
+#contents {
+    padding: 10px;
+    width: 750px;
+    background: #fff;
+}
+
+/* lists */
+ul {
+    padding-left: 0;
+    margin-left: 0;
+}
+
+.hidden {
+    display: none;
+}
+
+/* links */
+#links li {
+    list-style: none;
+    margin: 0;
+    padding: 0.3em;
+}
+
+#links li a {
+    text-decoration: none;
+}
+
+/* tags */
+ul#tags {
+    white-space: nowrap;
+}
+
+#tags li {
+    display: inline;
+    list-style-type: none;
+}
+
+#tags a {
+    padding: 3px 10px;
+    margin: 3px 5px;
+}
+
+#tags a:link, #tags a:visited {
+    color: #fff;
+    background-color: #036;
+    text-decoration: none;
+}
+
+#tags a:hover {
+    color: #fff;
+    background-color: #369;
+    text-decoration: none;
+}
+
+#tags .checked a:link, #tags .checked a:visited {
+    background-color: #369;
+}
+
+#tags .checked a:hover {
+    background-color: #036;
+}
+
+/* special tags */
+#tags .special a:link, #tags .special a:visited {
+    background-color: #630;
+}
+
+#tags .special a:hover {
+    background-color: #963;
+}

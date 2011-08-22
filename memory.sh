@@ -82,7 +82,6 @@ function memory_github_assoc {
 }
 
 # Generates the view in the gh_pages branch of the memory repo.
-# This will have to be done in a sane language.
 function memory_generate_view {
     if [[ ! -d $MEMORY_REPO ]]; then
         echo "Memory repository doesn't exist at $MEMORY_REPO!"
@@ -100,6 +99,7 @@ function memory_generate_view {
     fi
     git checkout gh-pages >> "$MEMORY_LOG"
     git pull >> "$MEMORY_LOG"
+    rsync -r "$MEMORY_HOME/js" "$MEMORY_HOME/css" "$MEMORY_REPO"
 
     # format: {hash}{link} name
     entries=`git log --pretty=tformat:'{%h}%s' -b master | grep -v "$INITIAL_COMMIT_MSG" | grep -v "$AUTO_MERGE_MSG"`
@@ -115,44 +115,52 @@ function memory_generate_view {
     data='var data=['
 
     # generate index.html
-    echo '<html><head><title>Memory links!</title></head><body><table>' > index.html
+    echo '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">' > index.html
+    echo '<html><head><title>Memory links!</title>' >> index.html
+    echo '<script src="js/underscore-min.js"></script>' >> index.html
+    echo '<script src="js/jquery-1.6.2.min.js"></script>' >> index.html
+    echo '<link rel="stylesheet" type="text/css" href="css/style.css" />' >> index.html
+    echo '</head><body>' >> index.html
+
+    echo '<div id="wrap">' >> index.html
+    echo '<div id="header"></div>' >> index.html
+    echo '<div id="contents"><ul id="links">' >> index.html
     while read entry; do
-        echo '<tr>' >> index.html
+        hash=`echo "$entry" | sed 's/{\(.*\)}{.*$/\1/'`
+        echo "<li id=\"$hash\">" >> index.html
 
         url=`echo "$entry" | sed 's/{.*}{\(.*\)}.*/\1/'`
         description=`echo "$entry" | sed 's/.*} \(.*\)$/\1/'`
-        echo "<td><a href=\"$url\">$description</a></td>" >> index.html
+        echo "<a href=\"$url\">$description</a>" >> index.html
 
         # get tags for the entry
-        hash=`echo "$entry" | sed 's/{\(.*\)}{.*$/\1/'`
+        tags=''
         # check if a note exists (hackish)
         git notes show $hash &> "$MEMORY_LOG"
         if [[ 0 -eq $? ]]; then
             alltags=`git notes show $hash`
-            tags=''
             for t in $alltags; do
                 tags="$tags,$t"
             done
             tags="${tags/,/}"
-            echo "<td>[$tags]</td>" >> index.html
-        else
-            tags=''
-            echo '<td>&nbsp;</td>' >> index.html
+            echo "<div class=\"tags\">[$tags]</div>" >> index.html
         fi
 
-        echo '</tr>' >> index.html
+        echo '</li>' >> index.html
 
         # add an object to the array (escape single quotes)
         data="$data {hash:'$hash',url:'${url//\'/\'}',description:'${description//\'/\'}',tags:'$tags'},"
     # avoid piping as otherwise `while` body will execute in a subshell
     # and variables will not be accessible after `done`
     done < <( echo "$entries" )
-    echo '</table>' >> index.html
+    echo '</ul></div></div>' >> index.html
 
     # append the object
     echo '<script type="text/javascript">' >> index.html
     echo "${data%%,}];" >> index.html # remove the trailing comma
-    echo '</script></body></html>' >> index.html
+    echo '</script>' >> index.html
+    echo '<script src="js/view.js"></script>' >> index.html
+    echo '</body></html>' >> index.html
 
     # perform git actions
     git add . >> "$MEMORY_LOG"
